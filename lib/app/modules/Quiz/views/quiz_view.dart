@@ -1,125 +1,209 @@
-import 'dart:js';
-
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-
 import 'package:get/get.dart';
-
+import 'package:get_storage/get_storage.dart';
+import 'package:mobile/firebase_options.dart';
 import '../controllers/quiz_controller.dart';
 
 class QuizView extends GetView<QuizController> {
-  const QuizView({Key? key}) : super(key: key);
-  
-  
+  final QuizController controller = Get.put(QuizController());
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Abraham'),
+        title: Text('Quiz'),
         backgroundColor: Colors.green,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.add),
-            onPressed: () {
-              // Action untuk menambah quiz baru
+      ),
+      body: Obx(() => ListView.builder(
+            padding: EdgeInsets.all(10.0),
+            itemCount: controller.quizzes.length,
+            itemBuilder: (context, index) {
+              final quiz = controller.quizzes[index];
+              return buildQuizCard(
+                context, // Perbaiki pemanggilan context
+                quiz['id'],
+                quiz['title'],
+                quiz['date'],
+                quiz['description'],
+              );
             },
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: EdgeInsets.all(16.0),
-        children: [
-          buildQuizCard('Quiz 1', 'Date', 'Deskripsi Quiz'),
-          buildQuizCard('Quiz 2', 'Date', 'Deskripsi Quiz'),
-          buildQuizCard('Quiz 3', 'Date', 'Deskripsi Quiz'),
-          buildQuizCard('Quiz 4', 'Date', 'Deskripsi Quiz'),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0, // Set this to control which tab is selected
-        type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.grid_view),
-            label: 'Modules',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.schedule),
-            label: 'Schedule',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.quiz),
-            label: 'Quiz',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+          )),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showAddDialog(context);
+        },
+        child: Icon(Icons.add),
+        backgroundColor: Colors.green,
       ),
     );
   }
 
-  Widget buildQuizCard(String title, String date, String description) {
+  void showAddDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    DateTime? selectedDate;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Add Quiz'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(labelText: 'Title'),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(labelText: 'Description'),
+                ),
+                ListTile(
+                  title: Text(selectedDate == null
+                      ? 'Select Date'
+                      : 'Selected Date: ${selectedDate.toString().split(' ')[0]}'),
+                  trailing: Icon(Icons.calendar_today),
+                  onTap: () async {
+                    DateTime? date = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (date != null) {
+                      selectedDate = date;
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (selectedDate != null && titleController.text.isNotEmpty) {
+                  controller.addQuiz(
+                    titleController.text,
+                    selectedDate!,
+                    descriptionController.text,
+                  );
+                  Navigator.of(context).pop();
+                }
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void showEditDialog(BuildContext context, String quizId, String initialTitle, DateTime initialDate, String initialDescription) {
+    final titleController = TextEditingController(text: initialTitle);
+    final descriptionController = TextEditingController(text: initialDescription);
+    DateTime selectedDate = initialDate;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Edit Quiz'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: InputDecoration(labelText: 'Title'),
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: InputDecoration(labelText: 'Description'),
+                ),
+                ListTile(
+                  title: Text('Selected Date: ${selectedDate.toString().split(' ')[0]}'),
+                  trailing: Icon(Icons.calendar_today),
+                  onTap: () async {
+                    DateTime? date = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (date != null) {
+                      selectedDate = date;
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                controller.editQuiz(
+                  quizId,
+                  titleController.text,
+                  selectedDate,
+                  descriptionController.text,
+                );
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget buildQuizCard(BuildContext context, String quizId, String title, String date, String description) {
     return Card(
+      color: Colors.green.shade50,
       margin: EdgeInsets.only(bottom: 16.0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.image,
-                  size: 50.0,
-                ),
-                SizedBox(width: 16.0),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4.0),
-                    Text(
-                      date,
-                      style: TextStyle(
-                        fontSize: 14.0,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    SizedBox(height: 8.0),
-                    Text(description),
-                  ],
-                ),
-              ],
-            ),
+            Text(title, style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold)),
+            Text(date, style: TextStyle(fontSize: 14.0, color: Colors.grey)),
+            Text(description),
             SizedBox(height: 16.0),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
                   onPressed: () {
-                    // Action untuk delete
+                    controller.fetchQuestions(quizId);
+                    Get.to(() => QuestionView(quizId: quizId));
                   },
-                  icon: Icon(Icons.delete, color: Colors.red),
-                  label: Text('Delete', style: TextStyle(color: Colors.red)),
+                  icon: Icon(Icons.list, color: Colors.blue),
+                  label: Text('View Questions', style: TextStyle(color: Colors.blue)),
                 ),
-                TextButton.icon(
-                  onPressed: () {
-                    // Action untuk edit
-                    showEditDialog(context as BuildContext, title);
-                  },
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => controller.deleteQuiz(quizId),
+                ),
+                IconButton(
                   icon: Icon(Icons.edit, color: Colors.grey),
-                  label: Text('Edit', style: TextStyle(color: Colors.grey)),
+                  onPressed: () {
+                    DateTime parsedDate = DateTime.parse(date);
+                    showEditDialog(context, quizId, title, parsedDate, description);
+                  },
                 ),
               ],
             ),
@@ -128,81 +212,145 @@ class QuizView extends GetView<QuizController> {
       ),
     );
   }
+}
 
-  void showEditDialog(BuildContext context, String quizTitle){
-    showDialog(
-      context: context, 
-    builder: (BuildContext context) {
-      return AlertDialog(
-        contentPadding: EdgeInsets.all(16.0),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        content: Container(
-          width: MediaQuery.of(context).size.width * 0.8,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Edit Quiz',
-                  style: TextStyle(fontSize: 18.0, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: (){
-                      Navigator.of(context).pop();
-                    },
-                  )
-                ],
-              ),
-              SizedBox(height: 16.0),
-              Text('Soal', style: TextStyle(fontWeight: FontWeight.bold)),
-              TextField(
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan soal',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              SizedBox(height: 16.0),
-              Text('Jawaban:', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...['A', 'B', 'C', 'D'].map((option){
-                return Padding(padding: const EdgeInsets.only(top: 8.0),
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: option,
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                );
-              }).toList(),
-              SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                    ),
-                    child: Text('Simpan'),
-                  ),
-                ],
-              )
-            ],
-            ),
+class QuestionView extends StatelessWidget {
+  final String quizId;
+  const QuestionView({Key? key, required this.quizId}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final QuizController controller = Get.find();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Questions'),
+        backgroundColor: Colors.green,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add),
+            onPressed: () {
+              showQuestionDialog(context, quizId);
+            },
+          ),
+        ],
+      ),
+      body: Obx(() => ListView.builder(
+            padding: EdgeInsets.all(10.0),
+            itemCount: controller.questions.length,
+            itemBuilder: (context, index) {
+              final question = controller.questions[index];
+              return buildQuestionCard(context, quizId, question);
+            },
+          )),
+    );
+  }
+
+  Widget buildQuestionCard(BuildContext context, String quizId, Map<String, dynamic> question) {
+    final QuizController controller = Get.find();
+    return Card(
+      color: Colors.grey.shade100,
+      margin: EdgeInsets.only(bottom: 10.0),
+      child: ListTile(
+        title: Text(question['question']),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (String option in question['options']) Text(option),
+          ],
         ),
-      );
-    },
+        trailing: IconButton(
+          icon: Icon(Icons.delete, color: Colors.red),
+          onPressed: () {
+            controller.deleteQuestion(quizId, question['id']);
+          },
+        ),
+        onTap: () {
+          showQuestionDialog(context, quizId, question: question);
+        },
+      ),
+    );
+  }
+
+  void showQuestionDialog(BuildContext context, String quizId, {Map<String, dynamic>? question}) {
+    final QuizController controller = Get.find();
+    final questionController = TextEditingController(text: question?['question'] ?? '');
+    final optionControllers = [
+      TextEditingController(text: question?['options'][0] ?? ''),
+      TextEditingController(text: question?['options'][1] ?? ''),
+      TextEditingController(text: question?['options'][2] ?? ''),
+      TextEditingController(text: question?['options'][3] ?? ''),
+    ];
+    final correctAnswerController = TextEditingController(text: question?['correctAnswer'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(question == null ? 'Add Question' : 'Edit Question'),
+          content: SingleChildScrollView(
+            child: Column(
+              children: [
+                TextField(
+                  controller: questionController,
+                  decoration: InputDecoration(labelText: 'Question'),
+                ),
+                for (int i = 0; i < optionControllers.length; i++)
+                  TextField(
+                    controller: optionControllers[i],
+                    decoration: InputDecoration(labelText: 'Option ${i + 1}'),
+                  ),
+                TextField(
+                  controller: correctAnswerController,
+                  decoration: InputDecoration(labelText: 'Correct Answer'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (question == null) {
+                  controller.addQuestion(
+                    quizId,
+                    questionController.text,
+                    optionControllers.map((c) => c.text).toList(),
+                    correctAnswerController.text,
+                  );
+                } else {
+                  controller.editQuestion(
+                    quizId,
+                    question['id'],
+                    questionController.text,
+                    optionControllers.map((c) => c.text).toList(),
+                    correctAnswerController.text,
+                  );
+                }
+                Navigator.of(context).pop();
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-void main(){
-  runApp(MaterialApp(
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await GetStorage.init();
+  runApp(GetMaterialApp(
+    debugShowCheckedModeBanner: false,
     home: QuizView(),
   ));
 }

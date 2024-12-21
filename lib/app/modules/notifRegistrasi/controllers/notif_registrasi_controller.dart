@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:mobile/app/routes/app_pages.dart';
 
 class NotifRegistrasiController extends GetxController {
   //TODO: Implement NotifRegistrasiController
@@ -12,6 +13,9 @@ class NotifRegistrasiController extends GetxController {
   @override
   void onReady() {
     super.onReady();
+    Future.delayed(const Duration(seconds: 5), () {  // Delay untuk menampilkan splash screen selama 5 detik
+      Get.offAllNamed(Routes.LOGIN);
+    });
   }
 
   @override

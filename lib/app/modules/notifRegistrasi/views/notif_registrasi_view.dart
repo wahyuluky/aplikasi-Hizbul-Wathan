@@ -10,7 +10,7 @@ class NotifRegistrasiView extends GetView<NotifRegistrasiController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color.fromRGBO(221, 165, 35, 0.4),
+      backgroundColor: Color(0xFFEDE1D0),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: Column(
@@ -36,7 +36,7 @@ class NotifRegistrasiView extends GetView<NotifRegistrasiController> {
             ),
             SizedBox(height: 20.0),
             Text(
-              "You will be redirected to the landing page in 5 seconds...",
+              "You will be redirected to the login in 5 seconds...",
               style: TextStyle(
                 fontSize: 16.0,
                 fontWeight: FontWeight.normal,
@@ -47,7 +47,7 @@ class NotifRegistrasiView extends GetView<NotifRegistrasiController> {
             SizedBox(height: 30.0),
             GestureDetector(
               onTap: (){
-                Get.offAllNamed(Routes.HOME);
+                Get.offAllNamed(Routes.LOGIN);
               },
               child: RichText(text: TextSpan(
                 text: "Click",
@@ -85,7 +85,9 @@ class NotifRegistrasiView extends GetView<NotifRegistrasiController> {
 }
 
 void main(){
-  runApp(MaterialApp(
+  runApp(GetMaterialApp(
+    debugShowCheckedModeBanner: false,
     home: NotifRegistrasiView(),
+    getPages: AppPages.routes,
   ));
 }

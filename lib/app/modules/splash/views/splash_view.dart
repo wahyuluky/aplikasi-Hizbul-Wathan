@@ -19,7 +19,7 @@ class SplashView extends GetView<SplashController> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: Color.fromRGBO(221, 165, 35, 0.4),
+        color: Color(0xFFEDE1D0),
         child: Center(child: Image.asset("assets/logo.png",
         width: 200,
         height: 400,)),
